@@ -25,6 +25,7 @@ const dateContainer = document.getElementById('dateContainer');
 const epContainer = document.getElementById('epContainer');
 const searchInput = document.getElementById('searchInput');
 const filterStatus = document.getElementById('filterStatus');
+const sortOrder = document.getElementById('sortOrder'); // Captura del nuevo select
 const editIdInput = document.getElementById('editId');
 const modalTitle = document.getElementById('modalTitle');
 
@@ -115,6 +116,7 @@ form.addEventListener('submit', async (e) => {
 
 searchInput.addEventListener('input', renderGrid);
 filterStatus.addEventListener('change', renderGrid);
+sortOrder.addEventListener('change', renderGrid); // Escuchar cuando cambia el ordenamiento
 
 window.updateEpisode = async function(id, increment) {
     const anime = animeList.find(a => a.id === id);
@@ -149,8 +151,7 @@ window.editAnime = function(id) {
 };
 
 window.duplicateAnime = async function(id) {
-    const animeListLocal = animeList;
-    const anime = animeListLocal.find(a => a.id === id);
+    const anime = animeList.find(a => a.id === id);
     if (anime) {
         const duplicate = {
             title: anime.title + ' (Copia)',
@@ -172,14 +173,34 @@ window.deleteAnime = async function(id) {
 function renderGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedFilter = filterStatus.value;
+    const selectedSort = sortOrder.value;
 
     grid.innerHTML = '';
 
-    const filteredList = animeList.filter(anime => {
+    // 1. Filtrar los elementos primero
+    let filteredList = animeList.filter(anime => {
         const matchesSearch = anime.title.toLowerCase().includes(searchTerm);
         const matchesFilter = selectedFilter === 'todos' || anime.status === selectedFilter;
         return matchesSearch && matchesFilter;
     });
+
+    // 2. Aplicar el ordenamiento según la opción seleccionada
+    if (selectedSort === 'alfabetico') {
+        filteredList.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (selectedSort === 'estado') {
+        // Mapeo numérico para prioridad: Viendo (1), Pendiente (2), Próximamente (3), Finalizado (4)
+        const statusPriority = {
+            'viendo': 1,
+            'pendiente': 2,
+            'proximamente': 3,
+            'finalizado': 4
+        };
+        filteredList.sort((a, b) => {
+            const pA = statusPriority[a.status] || 99;
+            const pB = statusPriority[b.status] || 99;
+            return pA - pB;
+        });
+    }
 
     if (filteredList.length === 0) {
         grid.innerHTML = `<p style="grid-column: 1/-1; color: var(--text-secondary); text-align: center; padding: 40px 0;">No se encontraron elementos en la lista.</p>`;
@@ -206,7 +227,6 @@ function renderGrid() {
                 </div>
             `;
         } else {
-            // "viendo" y "pendiente" comparten los controles de capítulos
             dynamicControls = `
                 <div class="ep-control">
                     <span>Capítulo: <strong>${anime.episode}</strong></span>
