@@ -72,6 +72,7 @@ button:hover {
     opacity: 0.9;
 }
 
+/* Acá le damos forma de cuadrícula a la lista */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -87,9 +88,10 @@ button:hover {
     flex-direction: column;
 }
 
+/* La imagen de portada en formato vertical */
 .anime-card img {
     width: 100%;
-    height: 300px;
+    height: 330px; 
     object-fit: cover;
     display: block;
 }
@@ -101,14 +103,15 @@ button:hover {
     flex-grow: 1;
 }
 
+/* Ajuste clave para el título: permite que baje de renglón si es largo */
 .card-content h3 {
     margin-bottom: 12px;
     font-size: 1.1rem;
-    /* Ajustes para que el texto se vea completo y salte de línea */
     white-space: normal; 
     overflow: visible;
     text-overflow: clip;
-    word-break: break-word; /* Por si hay títulos con palabras larguísimas */
+    word-break: break-word; 
+    line-height: 1.3;
 }
 
 .card-content select {
@@ -152,11 +155,10 @@ button:hover {
     width: 100%;
 }
 
-/* Botones de acción al pie de la tarjeta */
 .card-actions {
     display: flex;
     gap: 5px;
-    margin-top: auto; /* Empuja los botones abajo de todo */
+    margin-top: auto; 
     padding-top: 10px;
 }
 
