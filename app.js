@@ -1,22 +1,23 @@
 // ====== CONFIGURACIÓN DE FIREBASE ======
 const firebaseConfig = {
-  apiKey: "AIzaSyBlyIgJ7n0puBqIYyc-RD5xKsycLY5vLuY",
-  authDomain: "lista-anime-bec07.firebaseapp.com",
-  databaseURL: "https://lista-anime-bec07-default-rtdb.firebaseio.com",
-  projectId: "lista-anime-bec07",
-  storageBucket: "lista-anime-bec07.firebasestorage.app",
-  messagingSenderId: "1074858855317",
-  appId: "1:1074858855317:web:c538ea55f79697d068449c"
+    apiKey: "AIzaSyBlyIgJ7n0puBqIYyc-RD5xKsycLY5vLuY",
+    authDomain: "lista-anime-bec07.firebaseapp.com",
+    databaseURL: "https://lista-anime-bec07-default-rtdb.firebaseio.com",
+    projectId: "lista-anime-bec07",
+    storageBucket: "lista-anime-bec07.firebasestorage.app",
+    messagingSenderId: "1074858855317",
+    appId: "1:1074858855317:web:c538ea55f79697d068449c"
 };
 
-// Inicializamos Firebase y la Realtime Database
+// Inicializamos Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const animeRef = database.ref('animes'); 
 
-// ====== LÓGICA DE LA APP ======
+// ====== VARIABLES GLOBALES ======
 let animeList = [];
 
+// Capturamos todos los elementos del DOM
 const grid = document.getElementById('animeGrid');
 const modal = document.getElementById('animeModal');
 const form = document.getElementById('animeForm');
@@ -28,13 +29,16 @@ const filterStatus = document.getElementById('filterStatus');
 const sortOrder = document.getElementById('sortOrder'); 
 const editIdInput = document.getElementById('editId');
 const modalTitle = document.getElementById('modalTitle');
+const btnOpenForm = document.getElementById('btnOpenForm');
+const btnCancel = document.getElementById('btnCancel');
 
-// ESCUCHAR CAMBIOS EN TIEMPO REAL DESDE FIREBASE
+// ====== LÓGICA PRINCIPAL ======
+
+// 1. Escuchar la base de datos en tiempo real
 animeRef.on('value', (snapshot) => {
     const data = snapshot.val();
     animeList = [];
     if (data) {
-        // Transformamos el objeto de Firebase en un Array manejable
         Object.keys(data).forEach(key => {
             animeList.push({ id: key, ...data[key] });
         });
@@ -42,8 +46,8 @@ animeRef.on('value', (snapshot) => {
     renderGrid();
 });
 
-// Abrir formulario para un anime NUEVO
-document.getElementById('btnOpenForm').addEventListener('click', () => {
+// 2. Controladores del Modal
+btnOpenForm.addEventListener('click', () => {
     form.reset();
     editIdInput.value = ''; 
     modalTitle.textContent = 'Nuevo Anime';
@@ -52,20 +56,12 @@ document.getElementById('btnOpenForm').addEventListener('click', () => {
     modal.showModal();
 });
 
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(file);
-    });
-}
-
-document.getElementById('btnCancel').addEventListener('click', () => {
+btnCancel.addEventListener('click', () => {
     form.reset();
     modal.close();
 });
 
+// Mostrar capítulos o fecha según el estado seleccionado en el formulario
 statusSelect.addEventListener('change', (e) => {
     if (e.target.value === 'proximamente') {
         dateContainer.style.display = 'block';
@@ -76,7 +72,17 @@ statusSelect.addEventListener('change', (e) => {
     }
 });
 
-// Guardar (crear o editar en Firebase)
+// 3. Convertir imagen a texto (Base64)
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+    });
+}
+
+// 4. Guardar (Crear o Editar)
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -89,7 +95,7 @@ form.addEventListener('submit', async (e) => {
     }
 
     if (idToEdit) {
-        // ACTUALIZAR EN FIREBASE
+        // EDITAR EXISTENTE
         const updates = {
             title: document.getElementById('title').value.trim(),
             status: statusSelect.value,
@@ -97,10 +103,9 @@ form.addEventListener('submit', async (e) => {
             releaseDate: document.getElementById('releaseDate').value || null
         };
         if (finalCoverUrl) updates.coverUrl = finalCoverUrl;
-
         await database.ref('animes/' + idToEdit).update(updates);
     } else {
-        // CREAR NUEVO EN FIREBASE
+        // CREAR NUEVO
         const newAnime = {
             title: document.getElementById('title').value.trim(),
             coverUrl: finalCoverUrl || 'https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen', 
@@ -115,16 +120,17 @@ form.addEventListener('submit', async (e) => {
     modal.close();
 });
 
+// 5. Escuchadores de Filtros y Búsqueda
 searchInput.addEventListener('input', renderGrid);
 filterStatus.addEventListener('change', renderGrid);
 sortOrder.addEventListener('change', renderGrid); 
 
+// 6. Funciones globales expuestas para los botones de las tarjetas
 window.updateEpisode = async function(id, increment) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
         let newEp = anime.episode + increment;
         if (newEp < 0) newEp = 0;
-        // Guardar cambio de episodios en Firebase
         await database.ref('animes/' + id).update({ episode: newEp });
     }
 };
@@ -143,12 +149,6 @@ window.editAnime = function(id) {
         editIdInput.value = anime.id;
         modalTitle.textContent = 'Editar Anime';
         document.getElementById('title').value = anime.title;
-        
-        const coverNameInput = document.getElementById('coverName');
-        if (coverNameInput) {
-            coverNameInput.value = anime.coverUrl.replace('previews/', '');
-        }
-        
         statusSelect.value = anime.status;
         document.getElementById('episode').value = anime.episode;
         document.getElementById('releaseDate').value = anime.releaseDate || '';
@@ -178,6 +178,7 @@ window.deleteAnime = async function(id) {
     }
 };
 
+// 7. Renderizar la grilla en el HTML
 function renderGrid() {
     const searchTerm = searchInput.value.toLowerCase();
     const selectedFilter = filterStatus.value;
@@ -185,14 +186,14 @@ function renderGrid() {
 
     grid.innerHTML = '';
 
-    // 1. FILTRAR
+    // Filtrar
     let filteredList = animeList.filter(anime => {
         const matchesSearch = anime.title.toLowerCase().includes(searchTerm);
         const matchesFilter = selectedFilter === 'todos' || anime.status === selectedFilter;
         return matchesSearch && matchesFilter;
     });
 
-    // 2. ORDENAR
+    // Ordenar
     if (selectedSort === 'alfabetico') {
         filteredList.sort((a, b) => a.title.localeCompare(b.title));
     } else if (selectedSort === 'estado') {
