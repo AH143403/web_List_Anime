@@ -104,9 +104,11 @@ button:hover {
 .card-content h3 {
     margin-bottom: 12px;
     font-size: 1.1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Ajustes para que el texto se vea completo y salte de línea */
+    white-space: normal; 
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word; /* Por si hay títulos con palabras larguísimas */
 }
 
 .card-content select {
