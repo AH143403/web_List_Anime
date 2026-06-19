@@ -74,7 +74,6 @@ form.addEventListener('submit', async (e) => {
         const newAnime = {
             id: Date.now().toString(),
             title: document.getElementById('title').value.trim(),
-            // Si no subió foto, usa una por defecto de placehold.co
             coverUrl: finalCoverUrl || 'https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen', 
             status: statusSelect.value,
             episode: parseInt(document.getElementById('episode').value) || 0,
@@ -119,35 +118,32 @@ window.changeStatus = function(id, newStatus) {
     }
 };
 
-// NUEVA FUNCION: Cargar datos en el formulario para editar
+// Cargar datos en el formulario para editar
 window.editAnime = function(id) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
         editIdInput.value = anime.id;
         modalTitle.textContent = 'Editar Anime';
         document.getElementById('title').value = anime.title;
-        // Le quitamos el "previews/" para que solo veas el nombre del archivo en el input
-        document.getElementById('coverName').value = anime.coverUrl.replace('previews/', '');
         
+        // Corregido: Ya no busca 'coverName' porque ahora usamos un input file
         statusSelect.value = anime.status;
         document.getElementById('episode').value = anime.episode;
         document.getElementById('releaseDate').value = anime.releaseDate || '';
         
-        // Forzamos el evento change para que muestre los campos correctos (fecha o capítulos)
         statusSelect.dispatchEvent(new Event('change'));
-        
         modal.showModal();
     }
 };
 
-// NUEVA FUNCION: Duplicar un anime
+// Duplicar un anime
 window.duplicateAnime = function(id) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
         const duplicate = {
             ...anime,
-            id: Date.now().toString(), // Generamos un ID nuevo
-            title: anime.title + ' (Copia)' // Le agregamos "(Copia)" para diferenciarlo
+            id: Date.now().toString(),
+            title: anime.title + ' (Copia)'
         };
         animeList.push(duplicate);
         saveData();
@@ -197,6 +193,13 @@ function renderGrid() {
                     <input type="date" value="${anime.releaseDate || ''}" onchange="updateDate('${anime.id}', this.value)">
                 </div>
             `;
+        } else if (anime.status === 'finalizado') {
+            // Control personalizado para los ya terminados (sin botones de sumar capítulos)
+            dynamicControls = `
+                <div class="ep-control">
+                    <span>✨ ¡Finalizado! (<strong>${anime.episode}</strong> eps)</span>
+                </div>
+            `;
         } else {
             dynamicControls = `
                 <div class="ep-control">
@@ -210,13 +213,13 @@ function renderGrid() {
         }
 
         card.innerHTML = `
-            <img src="${anime.coverUrl}" alt="Portada de ${anime.title}" onerror="this.src='https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen'">
+            <img src="${anime.coverUrl}" alt="Portada de ${anime.title}" onerror=\"this.src='https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen'\">
             <div class="card-content">
                 <h3>${anime.title}</h3>
-                <select onchange="changeStatus('${anime.id}', this.value)">
-                    <option value="viendo" ${anime.status === 'viendo' ? 'selected' : ''}>Viendo</option>
-                    <option value="proximamente" ${anime.status === 'proximamente' ? 'selected' : ''}>Próximamente</option>
-                    <option value="finalizado" ${anime.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
+                <select onchange=\"changeStatus('${anime.id}', this.value)\">
+                    <option value=\"viendo\" ${anime.status === 'viendo' ? 'selected' : ''}>Viendo</option>
+                    <option value=\"proximamente\" ${anime.status === 'proximamente' ? 'selected' : ''}>Próximamente</option>
+                    <option value=\"finalizado\" ${anime.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
                 </select>
                 ${dynamicControls}
                 
