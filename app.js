@@ -1,4 +1,21 @@
-let animeList = JSON.parse(localStorage.getItem('myAnimeList')) || [];
+// ====== CONFIGURACIÓN DE FIREBASE ======
+const firebaseConfig = {
+  apiKey: "AIzaSyBlyIgJ7n0puBqIYyc-RD5xKsycLY5vLuY",
+  authDomain: "lista-anime-bec07.firebaseapp.com",
+  databaseURL: "https://lista-anime-bec07-default-rtdb.firebaseio.com",
+  projectId: "lista-anime-bec07",
+  storageBucket: "lista-anime-bec07.firebasestorage.app",
+  messagingSenderId: "1074858855317",
+  appId: "1:1074858855317:web:c538ea55f79697d068449c"
+};
+
+// Inicializamos Firebase y la Realtime Database
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const animeRef = database.ref('animes'); 
+
+// ====== LÓGICA DE LA APP ======
+let animeList = [];
 
 const grid = document.getElementById('animeGrid');
 const modal = document.getElementById('animeModal');
@@ -11,10 +28,22 @@ const filterStatus = document.getElementById('filterStatus');
 const editIdInput = document.getElementById('editId');
 const modalTitle = document.getElementById('modalTitle');
 
+// ESCUCHAR CAMBIOS EN TIEMPO REAL DESDE LA NUBE
+animeRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    animeList = [];
+    if (data) {
+        Object.keys(data).forEach(key => {
+            animeList.push({ id: key, ...data[key] });
+        });
+    }
+    renderGrid();
+});
+
 // Abrir formulario para un anime NUEVO
 document.getElementById('btnOpenForm').addEventListener('click', () => {
     form.reset();
-    editIdInput.value = ''; // Limpiamos el ID oculto
+    editIdInput.value = ''; 
     modalTitle.textContent = 'Nuevo Anime';
     dateContainer.style.display = 'none';
     epContainer.style.display = 'block';
@@ -45,7 +74,7 @@ statusSelect.addEventListener('change', (e) => {
     }
 });
 
-// Guardar (crear o editar)
+// Guardar (crear o editar en Firebase)
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -53,37 +82,34 @@ form.addEventListener('submit', async (e) => {
     const idToEdit = editIdInput.value;
     let finalCoverUrl = '';
 
-    // Si el usuario subió un archivo, lo procesamos
     if (fileInput.files.length > 0) {
         finalCoverUrl = await fileToBase64(fileInput.files[0]);
     }
 
     if (idToEdit) {
-        // EDITANDO
-        const anime = animeList.find(a => a.id === idToEdit);
-        if (anime) {
-            anime.title = document.getElementById('title').value.trim();
-            // Si subió foto nueva, la cambia; si no, deja la que estaba
-            if (finalCoverUrl) anime.coverUrl = finalCoverUrl;
-            anime.status = statusSelect.value;
-            anime.episode = parseInt(document.getElementById('episode').value) || 0;
-            anime.releaseDate = document.getElementById('releaseDate').value || null;
-        }
+        // ACTUALIZAR EN FIREBASE
+        const updates = {
+            title: document.getElementById('title').value.trim(),
+            status: statusSelect.value,
+            episode: parseInt(document.getElementById('episode').value) || 0,
+            releaseDate: document.getElementById('releaseDate').value || null
+        };
+        // Solo cambia la portada si se subió un archivo nuevo
+        if (finalCoverUrl) updates.coverUrl = finalCoverUrl;
+
+        await database.ref('animes/' + idToEdit).update(updates);
     } else {
-        // CREANDO
+        // CREAR NUEVO EN FIREBASE
         const newAnime = {
-            id: Date.now().toString(),
             title: document.getElementById('title').value.trim(),
             coverUrl: finalCoverUrl || 'https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen', 
             status: statusSelect.value,
             episode: parseInt(document.getElementById('episode').value) || 0,
             releaseDate: document.getElementById('releaseDate').value || null
         };
-        animeList.push(newAnime);
+        await animeRef.push(newAnime); 
     }
 
-    saveData();
-    renderGrid();
     form.reset();
     modal.close();
 });
@@ -91,42 +117,29 @@ form.addEventListener('submit', async (e) => {
 searchInput.addEventListener('input', renderGrid);
 filterStatus.addEventListener('change', renderGrid);
 
-window.updateEpisode = function(id, increment) {
+window.updateEpisode = async function(id, increment) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
-        anime.episode += increment;
-        if (anime.episode < 0) anime.episode = 0;
-        saveData();
-        renderGrid();
+        let newEp = anime.episode + increment;
+        if (newEp < 0) newEp = 0;
+        await database.ref('animes/' + id).update({ episode: newEp });
     }
 };
 
-window.updateDate = function(id, newDate) {
-    const anime = animeList.find(a => a.id === id);
-    if (anime) {
-        anime.releaseDate = newDate;
-        saveData();
-    }
+window.updateDate = async function(id, newDate) {
+    await database.ref('animes/' + id).update({ releaseDate: newDate });
 };
 
-window.changeStatus = function(id, newStatus) {
-    const anime = animeList.find(a => a.id === id);
-    if (anime) {
-        anime.status = newStatus;
-        saveData();
-        renderGrid();
-    }
+window.changeStatus = async function(id, newStatus) {
+    await database.ref('animes/' + id).update({ status: newStatus });
 };
 
-// Cargar datos en el formulario para editar
 window.editAnime = function(id) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
         editIdInput.value = anime.id;
         modalTitle.textContent = 'Editar Anime';
         document.getElementById('title').value = anime.title;
-        
-        // Corregido: Ya no busca 'coverName' porque ahora usamos un input file
         statusSelect.value = anime.status;
         document.getElementById('episode').value = anime.episode;
         document.getElementById('releaseDate').value = anime.releaseDate || '';
@@ -136,32 +149,25 @@ window.editAnime = function(id) {
     }
 };
 
-// Duplicar un anime
-window.duplicateAnime = function(id) {
+window.duplicateAnime = async function(id) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
         const duplicate = {
-            ...anime,
-            id: Date.now().toString(),
-            title: anime.title + ' (Copia)'
+            title: anime.title + ' (Copia)',
+            coverUrl: anime.coverUrl,
+            status: anime.status,
+            episode: anime.episode,
+            releaseDate: anime.releaseDate || null
         };
-        animeList.push(duplicate);
-        saveData();
-        renderGrid();
+        await animeRef.push(duplicate);
     }
 };
 
-window.deleteAnime = function(id) {
+window.deleteAnime = async function(id) {
     if (confirm('¿Querés eliminar este anime de la lista?')) {
-        animeList = animeList.filter(a => a.id !== id);
-        saveData();
-        renderGrid();
+        await database.ref('animes/' + id).remove();
     }
 };
-
-function saveData() {
-    localStorage.setItem('myAnimeList', JSON.stringify(animeList));
-}
 
 function renderGrid() {
     const searchTerm = searchInput.value.toLowerCase();
@@ -194,7 +200,6 @@ function renderGrid() {
                 </div>
             `;
         } else if (anime.status === 'finalizado') {
-            // Control personalizado para los ya terminados (sin botones de sumar capítulos)
             dynamicControls = `
                 <div class="ep-control">
                     <span>✨ ¡Finalizado! (<strong>${anime.episode}</strong> eps)</span>
@@ -213,13 +218,13 @@ function renderGrid() {
         }
 
         card.innerHTML = `
-            <img src="${anime.coverUrl}" alt="Portada de ${anime.title}" onerror=\"this.src='https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen'\">
+            <img src="${anime.coverUrl}" alt="Portada de ${anime.title}" onerror="this.src='https://placehold.co/220x300/1a1a1a/a0a0a0?text=Falta+Imagen'">
             <div class="card-content">
                 <h3>${anime.title}</h3>
-                <select onchange=\"changeStatus('${anime.id}', this.value)\">
-                    <option value=\"viendo\" ${anime.status === 'viendo' ? 'selected' : ''}>Viendo</option>
-                    <option value=\"proximamente\" ${anime.status === 'proximamente' ? 'selected' : ''}>Próximamente</option>
-                    <option value=\"finalizado\" ${anime.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
+                <select onchange="changeStatus('${anime.id}', this.value)">
+                    <option value="viendo" ${anime.status === 'viendo' ? 'selected' : ''}>Viendo</option>
+                    <option value="proximamente" ${anime.status === 'proximamente' ? 'selected' : ''}>Próximamente</option>
+                    <option value="finalizado" ${anime.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
                 </select>
                 ${dynamicControls}
                 
@@ -233,5 +238,3 @@ function renderGrid() {
         grid.appendChild(card);
     });
 }
-
-renderGrid();
