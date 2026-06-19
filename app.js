@@ -25,15 +25,16 @@ const dateContainer = document.getElementById('dateContainer');
 const epContainer = document.getElementById('epContainer');
 const searchInput = document.getElementById('searchInput');
 const filterStatus = document.getElementById('filterStatus');
-const sortOrder = document.getElementById('sortOrder'); // Captura del nuevo select
+const sortOrder = document.getElementById('sortOrder'); 
 const editIdInput = document.getElementById('editId');
 const modalTitle = document.getElementById('modalTitle');
 
-// ESCUCHAR CAMBIOS EN TIEMPO REAL DESDE LA NUBE
+// ESCUCHAR CAMBIOS EN TIEMPO REAL DESDE FIREBASE
 animeRef.on('value', (snapshot) => {
     const data = snapshot.val();
     animeList = [];
     if (data) {
+        // Transformamos el objeto de Firebase en un Array manejable
         Object.keys(data).forEach(key => {
             animeList.push({ id: key, ...data[key] });
         });
@@ -116,13 +117,14 @@ form.addEventListener('submit', async (e) => {
 
 searchInput.addEventListener('input', renderGrid);
 filterStatus.addEventListener('change', renderGrid);
-sortOrder.addEventListener('change', renderGrid); // Escuchar cuando cambia el ordenamiento
+sortOrder.addEventListener('change', renderGrid); 
 
 window.updateEpisode = async function(id, increment) {
     const anime = animeList.find(a => a.id === id);
     if (anime) {
         let newEp = anime.episode + increment;
         if (newEp < 0) newEp = 0;
+        // Guardar cambio de episodios en Firebase
         await database.ref('animes/' + id).update({ episode: newEp });
     }
 };
@@ -141,6 +143,12 @@ window.editAnime = function(id) {
         editIdInput.value = anime.id;
         modalTitle.textContent = 'Editar Anime';
         document.getElementById('title').value = anime.title;
+        
+        const coverNameInput = document.getElementById('coverName');
+        if (coverNameInput) {
+            coverNameInput.value = anime.coverUrl.replace('previews/', '');
+        }
+        
         statusSelect.value = anime.status;
         document.getElementById('episode').value = anime.episode;
         document.getElementById('releaseDate').value = anime.releaseDate || '';
@@ -177,18 +185,17 @@ function renderGrid() {
 
     grid.innerHTML = '';
 
-    // 1. Filtrar los elementos primero
+    // 1. FILTRAR
     let filteredList = animeList.filter(anime => {
         const matchesSearch = anime.title.toLowerCase().includes(searchTerm);
         const matchesFilter = selectedFilter === 'todos' || anime.status === selectedFilter;
         return matchesSearch && matchesFilter;
     });
 
-    // 2. Aplicar el ordenamiento según la opción seleccionada
+    // 2. ORDENAR
     if (selectedSort === 'alfabetico') {
         filteredList.sort((a, b) => a.title.localeCompare(b.title));
     } else if (selectedSort === 'estado') {
-        // Mapeo numérico para prioridad: Viendo (1), Pendiente (2), Próximamente (3), Finalizado (4)
         const statusPriority = {
             'viendo': 1,
             'pendiente': 2,
