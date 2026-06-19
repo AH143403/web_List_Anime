@@ -94,7 +94,6 @@ form.addEventListener('submit', async (e) => {
             episode: parseInt(document.getElementById('episode').value) || 0,
             releaseDate: document.getElementById('releaseDate').value || null
         };
-        // Solo cambia la portada si se subió un archivo nuevo
         if (finalCoverUrl) updates.coverUrl = finalCoverUrl;
 
         await database.ref('animes/' + idToEdit).update(updates);
@@ -150,7 +149,8 @@ window.editAnime = function(id) {
 };
 
 window.duplicateAnime = async function(id) {
-    const anime = animeList.find(a => a.id === id);
+    const animeListLocal = animeList;
+    const anime = animeListLocal.find(a => a.id === id);
     if (anime) {
         const duplicate = {
             title: anime.title + ' (Copia)',
@@ -206,6 +206,7 @@ function renderGrid() {
                 </div>
             `;
         } else {
+            // "viendo" y "pendiente" comparten los controles de capítulos
             dynamicControls = `
                 <div class="ep-control">
                     <span>Capítulo: <strong>${anime.episode}</strong></span>
@@ -223,6 +224,7 @@ function renderGrid() {
                 <h3>${anime.title}</h3>
                 <select onchange="changeStatus('${anime.id}', this.value)">
                     <option value="viendo" ${anime.status === 'viendo' ? 'selected' : ''}>Viendo</option>
+                    <option value="pendiente" ${anime.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
                     <option value="proximamente" ${anime.status === 'proximamente' ? 'selected' : ''}>Próximamente</option>
                     <option value="finalizado" ${anime.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
                 </select>
