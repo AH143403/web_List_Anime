@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>lista</h1>
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Buscar anime...">
+            <select id="filterStatus">
+                <option value="todos">Todos los estados</option>
+                <option value="viendo">Viendo</option>
+                <option value="proximamente">Próximamente</option>
+                <option value="finalizado">Finalizado</option>
+            </select>
+            <button id="btnOpenForm">+ Agregar Anime</button>
+        </div>
+    </header>
+
+    <dialog id="animeModal">
+        <form id="animeForm">
+            <h2 id="modalTitle">Nuevo Anime</h2>
+            
+            <input type="hidden" id="editId">
+            
+            <label for="title">Título:</label>
+            <input type="text" id="title" placeholder="Ej: Overlord" required>
+            
+            <label for="coverFile">Portada del anime:</label>
+            <input type="file" id="coverFile" accept="image/*">
+            
+            <label for="status">Estado inicial:</label>
+            <select id="status" required>
+                <option value="viendo">Viendo</option>
+                <option value="proximamente">Próximamente</option>
+                <option value="finalizado">Finalizado</option>
+            </select>
+
+            <div id="epContainer">
+                <label for="episode">Episodio actual:</label>
+                <input type="number" id="episode" value="0" min="0">
+            </div>
+
+            <div id="dateContainer" style="display: none;">
+                <label for="releaseDate">Fecha de estreno:</label>
+                <input type="date" id="releaseDate">
+            </div>
+
+            <div class="modal-actions">
+                <button type="submit" class="btn-save">Guardar</button>
+                <button type="button" id="btnCancel" class="btn-cancel">Cancelar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <main id="animeGrid" class="grid"></main>
+
+    <script src="app.js"></script>
+</body>
+</html>
