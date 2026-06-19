@@ -40,6 +40,7 @@
             
             <label for="coverFile">Portada del anime:</label>
             <input type="file" id="coverFile" accept="image/*">
+            <input type="hidden" id="coverName">
             
             <label for="status">Estado inicial:</label>
             <select id="status" required>
@@ -67,9 +68,6 @@
     </dialog>
 
     <main id="animeGrid" class="grid"></main>
-
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <script src="app.js"></script>
 </body>
