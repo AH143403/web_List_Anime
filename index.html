@@ -11,6 +11,7 @@
         <h1>lista</h1>
         <div class="controls">
             <input type="text" id="searchInput" placeholder="Buscar anime...">
+            
             <select id="filterStatus">
                 <option value="todos">Todos los estados</option>
                 <option value="viendo">Viendo</option>
@@ -18,6 +19,12 @@
                 <option value="proximamente">Próximamente</option>
                 <option value="finalizado">Finalizado</option>
             </select>
+
+            <select id="sortOrder">
+                <option value="alfabetico">Ordenar por Nombre (A-Z)</option>
+                <option value="estado">Ordenar por Estado (Viendo -> Finalizado)</option>
+            </select>
+
             <button id="btnOpenForm">+ Agregar Anime</button>
         </div>
     </header>
